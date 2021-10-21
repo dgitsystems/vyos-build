@@ -108,6 +108,7 @@ def call(description=null, pkgList=null, buildCmd=null, buildArm=false, changesP
                             }
                         }
                         when {
+                            beforeAgent true
                             equals expected: true, actual: buildArm
                         }
                         steps {
