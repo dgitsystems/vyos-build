@@ -24,7 +24,7 @@ def call(description=null, pkgList=null, buildCmd=null, buildArm=false, changesP
     // - changesPattern: package will only be build if a change file matching this
     //   pattern is found
 
-    setDescription(description)
+//    setDescription(description)
 
     pipeline {
         agent none
