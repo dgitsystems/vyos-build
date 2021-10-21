@@ -56,7 +56,7 @@ def call(description=null, pkgList=null, buildCmd=null, buildArm=false, changesP
                         if (branchName.equals('master'))
                             branchName = 'current'
 
-                        env.DOCKER_IMAGE = 'vyos/vyos-build:' + branchName
+                        env.DOCKER_IMAGE = 'vyos/vyos-build:equuleus'
 
                         // Get the current UID and GID from the jenkins agent to allow use of the same UID inside Docker
                         env.USR_ID = sh(returnStdout: true, script: 'id -u').toString().trim()
