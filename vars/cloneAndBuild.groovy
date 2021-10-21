@@ -29,13 +29,17 @@ def call(description, architecture, pkgList, buildCmd) {
         def commitId = sh(returnStdout: true, script: 'git rev-parse --short=11 HEAD').trim()
         currentBuild.description = sprintf('Git SHA1: %s', commitId[-11..-1])
 
+        if (description == 'Kernel') {
+            BASE_DIR = "packages/linux-kernel/"
+        }
+
         if (pkgList) {
             // Fetch individual package source code, but only if a URL is defined, this will
             // let us reuse this script for packages like vyos-1x which ship a Jenkinfile in
             // their repositories root folder.
             pkgList.each { pkg ->
                 if (pkg.scmUrl && pkg.scmCommit) {
-                    dir(getJenkinsfilePath() + pkg.name) {
+                    dir(BASE_DIR + pkg.name) {
                         checkout([$class: 'GitSCM',
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [[$class: 'CleanCheckout']],
@@ -49,7 +53,7 @@ def call(description, architecture, pkgList, buildCmd) {
         // compile the source(s) ...
         if (pkgList) {
             pkgList.each { pkg ->
-                dir(getJenkinsfilePath() + pkg.name) {
+                dir(BASE_DIR + pkg.name) {
                     sh pkg.buildCmd
                 }
             }
