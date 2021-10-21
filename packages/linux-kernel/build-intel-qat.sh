@@ -56,6 +56,8 @@ do
         exit 1
     fi
 
+    sudo apt-get update && sudo apt-get install -y yasm
+
     echo "I: Compile Kernel module for Intel ${DRIVER_NAME} driver"
     mkdir -p \
         ${DEBIAN_DIR}/lib/firmware \
