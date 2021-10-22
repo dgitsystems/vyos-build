@@ -21,7 +21,7 @@
 @Library('vyos-build@equuleus-dgit')_
 //setDescription()
 
-node('Docker') {
+node('ec2_amd64') {
     stage('Setup Container') {
         script {
             // create container name on demand
@@ -46,7 +46,7 @@ node('Docker') {
 pipeline {
     agent {
         docker {
-            label "Docker"
+            label "ec2_amd64"
             args "${env.DOCKER_ARGS}"
             image "${env.DOCKER_IMAGE}"
             alwaysPull true
