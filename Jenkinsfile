@@ -200,8 +200,8 @@ pipeline {
                 }
             }
         }
-        failure {
-            archiveArtifacts artifacts: '**/build/vyos-*.iso, **/build/vyos-*.qcow2',
+        always {
+            archiveArtifacts artifacts: '**/build/live-image-*, **/build/vyos-*.qcow2',
                 allowEmptyArchive: true
         }
         cleanup {
