@@ -19,7 +19,7 @@
 // is not a typo! You need this underscore if the line immediately after the
 // @Library annotation is not an import statement!
 @Library('vyos-build@equuleus-dgit')_
-setDescription()
+//setDescription()
 
 node('Docker') {
     stage('Setup Container') {
