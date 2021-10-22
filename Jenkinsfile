@@ -101,7 +101,6 @@ pipeline {
                             --debian-mirror http://deb.debian.org/debian/ \
                             --build-type release \
                             --version "${VYOS_VERSION}" ${CUSTOM_PACKAGES}
-                        sudo make iso
                     """
 
                     // pull in kernel from current/sagitta/1.4 build
