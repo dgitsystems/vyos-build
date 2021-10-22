@@ -38,7 +38,7 @@ node('ec2_amd64') {
             env.USR_ID = sh(returnStdout: true, script: 'id -u').toString().trim()
             env.GRP_ID = sh(returnStdout: true, script: 'id -g').toString().trim()
             env.DOCKER_ARGS = '--privileged --sysctl net.ipv6.conf.lo.disable_ipv6=0 -e GOSU_UID=' + env.USR_ID + ' -e GOSU_GID=' + env.GRP_ID
-            env.BASE_VERSION = '1.3-beta-'
+            env.BASE_VERSION = '1.3-dgit-'
         }
     }
 }
@@ -57,7 +57,7 @@ pipeline {
 //        cron('H 4 * * *')
 //    }
     parameters {
-        string(name: 'BUILD_BY', defaultValue: 'autobuild@vyos.net', description: 'Builder identifier (e.g. jrandomhacker@example.net)')
+        string(name: 'BUILD_BY', defaultValue: 'sysadmin@inomial.com', description: 'Builder identifier (e.g. jrandomhacker@example.net)')
         string(name: 'BUILD_VERSION', defaultValue: env.BASE_VERSION + 'ISO8601-TIMESTAMP', description: 'Version number (release builds only)')
         booleanParam(name: 'BUILD_PUBLISH', defaultValue: true, description: 'Publish this build to downloads.vyos.io and AWS S3')
         booleanParam(name: 'BUILD_SMOKETESTS', defaultValue: true, description: 'Include Smoketests in ISO image')
