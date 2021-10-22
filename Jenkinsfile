@@ -104,8 +104,18 @@ pipeline {
                         sudo make iso
                     """
 
-                    if (fileExists('build/live-image-amd64.hybrid.iso') == false) {
-                        error('ISO build error')
+                    // pull in kernel from current/sagitta/1.4 build
+                    copyArtifacts filter: 'build-amd64/packages/linux-kernel/*.deb', target: 'packages', fingerprintArtifacts: true, projectName: 'vyos-build-kernel/current-dgit', flatten: true
+                    sh "find packages -maxdepth 1 -name '*.deb'"
+                    // preserve git env vars for scripts/make-version-file
+                    sh "sudo --preserve-env=GIT_COMMIT,GIT_BRANCH make iso"
+                    sh "find build/config/packages.chroot -ls"
+                    dir('build') {
+                        def ISO = "live-image-amd64.hybrid.iso"
+                        if (fileExists(ISO) == false) {
+                            error('ISO build error')
+                        }
+                        sh "sha256sum ${ISO} > ${ISO}.sha256"
                     }
                 }
             }

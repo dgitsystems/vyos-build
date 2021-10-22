@@ -59,9 +59,15 @@ try:
     git_branch = repo.active_branch.name
 except Exception as e:
   print("Could not retrieve information from git: {0}".format(str(e)))
+  # fallback to environment vars if available
   build_git = ""
+  if 'GIT_COMMIT' in os.environ:
+    build_git = os.environ["GIT_COMMIT"]
+    print("Got git commit id from env: " + build_git)
   git_branch = ""
-  git_commit = ""
+  if 'GIT_BRANCH' in os.environ:
+    git_branch = os.environ["GIT_BRANCH"]
+    print("Got git branch from env: " + git_branch)
 
 # Create a build version
 if build_config['build_type'] == 'development':
