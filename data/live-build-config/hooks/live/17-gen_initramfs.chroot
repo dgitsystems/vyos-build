@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -eo pipefail
 
@@ -7,16 +7,14 @@ echo I: Create initramfs if it does not exist.
 # Kernel complains about non available nls_ascii module when booting from USB pendrive
 echo "nls_ascii" >> /etc/initramfs-tools/modules
 
-if [ -e /boot/initrd.img-* ]; then
-	rm -f /boot/initrd.img-*
-fi
+rm -f /boot/initrd.img-*
 
 # fix issue where the in the kernel version of mlx5_core was being loaded instead of the version from mlnx-en under extra
 mkdir -p /etc/depmod.d
 echo "search extra updates built-in" >> /etc/depmod.d/extra.conf
 
-for kernel in $(ls /boot | grep vmlinuz- | sed 's/vmlinuz-//g'); do
-  update-initramfs -c -k "$kernel"
+kernels=$(find /boot/ -maxdepth 1 -name 'vmlinuz-*' -type f -printf "%f\n" | sed 's/vmlinuz-//g')
+for kernel in $kernels; do
   depmod -avvv "$kernel"
   update-initramfs -cv -k "$kernel"
 done
