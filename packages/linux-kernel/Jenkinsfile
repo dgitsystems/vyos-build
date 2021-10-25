@@ -54,8 +54,7 @@ def pkgList = [
      'buildCmd': 'cd ..; pwd; ls -al; ./build-accel-ppp.sh'],
 
     // Mellanox MLNX_EN
-// swap config to arch/x86/configs/vyos_defconfig.mellanox-en
-//    ['name': 'mlnx-en', 'buildCmd': 'cd ..; ./build-mellanox-en.sh'],
+    ['name': 'mlnx-en', 'buildCmd': 'cd ..; ./build-mellanox-en.sh'],
 
     // Intel-QAT
     ['name': 'qat', 'buildCmd': 'cd ..; ./build-intel-qat.sh'],
