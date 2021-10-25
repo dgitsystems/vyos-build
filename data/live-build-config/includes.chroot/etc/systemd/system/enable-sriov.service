@@ -1,0 +1,22 @@
+[Unit]
+Description=Script to enable SR-IOV on boot
+DefaultDependencies=no
+Before=vyos-configd.service vyos-router.service network.target netplug.service
+
+[Service]
+Type=oneshot
+
+# Disable VF probing before switching to SR-IOV mode or a bunch of extra eth interfaces will appear that we dont need
+#ExecStart=/bin/bash -exc 'echo 0 > /sys/module/mlx5_core/parameters/probe_vf'
+
+# Enable SR-IOV for all possible devices (if not already enabled)
+#ExecStart=/bin/bash -exo pipefail -c "find /sys/devices -type f -name sriov_numvfs -print0 | xargs -0 grep -Zlv '^[^0]$' | xargs -t0I% sh -c 'echo 1 > \"%\"'"
+
+# Selectively enable on our ConnectX-6 Dx cards
+ExecStart=/usr/local/bin/enable_ipsec_offload.sh
+
+# Setting static MACs on VFs
+#ExecStart=/bin/bash -exc 'ip link set enp1s0f1 vf 0 mac 04:a1:4d:c5:f6:30'
+
+[Install]
+WantedBy=multi-user.target
