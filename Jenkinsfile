@@ -59,6 +59,7 @@ pipeline {
     parameters {
         string(name: 'BUILD_BY', defaultValue: 'sysadmin@inomial.com', description: 'Builder identifier (e.g. jrandomhacker@example.net)')
         string(name: 'BUILD_VERSION', defaultValue: env.BASE_VERSION + 'ISO8601-TIMESTAMP', description: 'Version number (release builds only)')
+        booleanParam(name: 'WITH_MELLANOX', defaultValue: false, description: 'Include Mellanox MLNX_EN/OFED in build')
         booleanParam(name: 'BUILD_PUBLISH', defaultValue: false, description: 'Publish this build to downloads.vyos.io and AWS S3')
         booleanParam(name: 'BUILD_SMOKETESTS', defaultValue: false, description: 'Include Smoketests in ISO image')
         booleanParam(name: 'BUILD_SNAPSHOT', defaultValue: false, description: 'Upload image to AWS S3 snapshot bucket')
@@ -104,7 +105,7 @@ pipeline {
                     """
 
                     // pull in kernel from current/sagitta/1.4 build
-                    copyArtifacts filter: 'build-amd64/packages/linux-kernel/*.deb', target: 'packages', fingerprintArtifacts: true, projectName: 'vyos-build-kernel/current-dgit', flatten: true
+                    copyArtifacts filter: 'build-amd64/packages/linux-kernel/*.deb', target: 'packages', fingerprintArtifacts: true, projectName: 'vyos-build-kernel/current-dgit', flatten: true, excludes: params.WITH_MELLANOX ? '' : 'build-amd64/packages/linux-kernel/vyos-mellanox-*.deb'
                     sh "find packages -maxdepth 1 -name '*.deb'"
                     // preserve git env vars for scripts/make-version-file
                     sh "sudo --preserve-env=GIT_COMMIT,GIT_BRANCH make iso"
