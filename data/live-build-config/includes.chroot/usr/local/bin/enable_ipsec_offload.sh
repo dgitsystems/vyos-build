@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# This script will enable SR-IOV, set full IPSec offload and then change to switchdev e-switch mode
+
 set -euo pipefail
 
 trap 'log error $? on line $LINENO' ERR
@@ -33,6 +35,32 @@ set_sys_opt() {
   echo "$value" > "$path/$opt"
 }
 
+set_devlink_param() {
+  local devlink=$1
+  local param=$2
+  local value=$3
+
+  log "set $param to $value on $devlink"
+  local jsonvalue
+  if ! jsonvalue=$(devlink dev param show "$devlink" name "$param" -j); then
+    log "unable to get $param value, unable to proceed" >&2
+    return 1
+  fi
+
+  local curvalue
+  if ! curvalue=$(<<<"$jsonvalue" python3 -c "import json,sys;print(json.load(sys.stdin)['param']['$devlink'][0]['values'][0]['value'])") || [ ! "$curvalue" ]; then
+    log "unable to parse current value from devlink JSON: $jsonvalue" >&2
+    return 1
+  fi
+
+  if [ "$curvalue" = "$value" ]; then
+    log "$param already set to $curvalue"
+    return 0
+  fi
+
+  devlink dev param set "$devlink" name "$param" value "$value" cmode runtime
+}
+
 # selectively enable on our ConnectX-6 Dx cards (see `lspci -nn` for ids)
 devs=$(lspci -Dmmd 15b3:101d | awk '{print$1}')
 
@@ -45,7 +73,7 @@ for dev in $devs; do
   ifnames=( $(printf "%s\n" "${ifpaths[@]}" | awk -F/ '{print$NF}') )
   echo "configuring $dev (${ifnames[@]})"
 
-  devlinks=$(find "$devpath/" -xdev -maxdepth 4 -type d -name devlink)
+  devlinks=$(devlink dev show "pci/$dev")
   if [ ! "$devlinks" ]; then
     log "unable to find devlink under $devpath, skipping $dev" >&2
     exit 1
@@ -56,11 +84,9 @@ for dev in $devs; do
   modulepath=$(realpath "$driverpath/module")
 
   if [ "$(<$devpath/sriov_numvfs)" = 0 ]; then
-    if [ "$driver" = mlx5_core ]; then
-      # Skip need to unbind by disabling VF probing before switching to SR-IOV mode
-      # echo 0 > /sys/module/mlx5_core/parameters/probe_vf
-      set_sys_opt "$modulepath/parameters" probe_vf N
-    fi
+    # Skip need to unbind by disabling VF probing before switching to SR-IOV mode
+    set_sys_opt "$devpath" sriov_drivers_autoprobe 0
+
     set_sys_opt "$devpath" sriov_numvfs 1
   fi
 
@@ -73,7 +99,7 @@ for dev in $devs; do
     fi
 
     if [ -e "$vf/enable" ] && [ "$(<"$vf/enable")" = 0 ]; then
-      # if VF interface is not enabled then probe_vf is probably disabled and unbinding is not required
+      # if VF interface is not enabled then sriov_drivers_autoprobe/probe_vf is probably disabled and unbinding is not required
       continue
     fi
     vfaddr=$(basename "$vf")
@@ -87,9 +113,13 @@ for dev in $devs; do
 #    set_sys_opt "$devlink" mode legacy
 #    set_sys_opt "$devlink" ipsec_mode none
 
-    set_sys_opt "$devlink" steering_mode dmfs
-    set_sys_opt "$devlink" ipsec_mode full
-    set_sys_opt "$devlink" mode switchdev
+    set_devlink_param "$devlink" flow_steering_mode dmfs
+
+    # note: ipsec_mode is not (at least currently) a parameter that can be set via devlink (see `devlink dev param -jp`), so this depends on the compat/devlink interface provided by MLNX_EN
+    set_sys_opt "/sys/bus/pci/devices/$dev/net/"*"/compat/devlink" ipsec_mode full
+
+    # devlink dev eswitch show "$devlink" -j | python3 -c "import json,sys;print(json.load(sys.stdin)['dev']['$devlink']['mode'])"
+    devlink dev eswitch set "$devlink" mode switchdev
   done
 
   # if we unbinded the VF then bind it again now
@@ -105,15 +135,13 @@ for dev in $devs; do
     ifname=$(basename "$ifpath")
 
     # only check PF, ignore the VF interfaces
-    # - only the PF seems to get devlink so look for that
-    # - VFs get the MAC addr_assign_type set to 1 (randomly generated) instead of the PF's 0 (permanent address)
-    addr_type=$(<"$ifpath/addr_assign_type")
-    if [ "$addr_type" != 0 ] || [ ! -e "$ifpath/compat/devlink" ]; then
-      log "not checking ipsec offload state on suspected VF $ifname (addr_assign_type: '$addr_type')"
+    porttype=$(devlink port show "$ifname" -jp | python3 -c "import json,sys;json = json.load(sys.stdin)['port']; key = list(json.keys())[0]; print(json[key]['flavour'])")
+    if [ "$porttype" != physical ]; then
+      log "not checking ipsec offload state on $ifname ($porttype)"
       continue
     fi
 
-    log "checking ipsec offload on $ifname"
+    log "checking ipsec offload on $ifname ($porttype)"
     let ipsec_offload_checked+=1
 
     if ethtool -S "$ifname" | awk -v DEV="$dev" '/^\s*ipsec_full_/{MATCHES++;print"["DEV"]: "$0}END{if(MATCHES!=8){exit 1}}'; then
