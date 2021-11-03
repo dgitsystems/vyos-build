@@ -1,6 +1,8 @@
 [Unit]
 Description=Script to enable SR-IOV on boot
 DefaultDependencies=no
+After=systemd-udev-settle.service
+Requires=systemd-udev-settle.service
 Before=vyos-configd.service vyos-router.service network.target netplug.service
 
 [Service]
